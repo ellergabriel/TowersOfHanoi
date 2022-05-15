@@ -34,11 +34,12 @@ float convertChar(char c){
 
 //helper class to store each state of the puzzle
 class State{
+  public:
   //inner class with custom stack functionality
   class MyStack{
     public:
       MyStack(){
-        
+
       }
   
       char peek(int index){
@@ -71,15 +72,19 @@ class State{
         }
         return val;
       }
-  
+
+      int dumb(){
+        return 23;
+      }
+
       int top = -1;
       vector<char> stack;
   };
 
-  public:
     State(){
       for(int i = 0; i < NUM_PEGS; i++){
-        pegs.push_back(new MyStack());
+        State::MyStack* holder = new MyStack();
+        pegs.push_back(holder);
       }
       pegs[0]->push('L');
       pegs[0]->push('M');
@@ -87,14 +92,12 @@ class State{
     }
     
     State(State* origin){
-     
+      pegs = origin->pegs;
       g = origin->g;
-
     }
-
     bool isLegalMove(int dest, char disk){
       if(pegs[dest]->size() > 0){
-        return (convertChar(disk) < convertChar('c');
+        return (convertChar(disk) < convertChar(pegs[dest]->peek(0)));
       } else {
         return true;
       }
@@ -103,7 +106,9 @@ class State{
     bool moveDisk(int origin, int dest){
       char disk = 'c';
       if(isLegalMove(dest, disk)){
-
+        disk = pegs[origin]->peek(0);
+        pegs[dest]->push(disk);
+        pegs[origin]->pop();
         g++;
         return true;
       }
@@ -121,17 +126,17 @@ class State{
     }
 
     int g = 0;
-    vector< MyStack* > pegs;
+    vector< State::MyStack* > pegs;
 };
 
-static void printState(State* s){
+static void printState(State s){
   int level = 3;
   string empty = "  |    ";
   for(int i = 0; i < NUM_PEGS; i++){
     for(int j = 0; j < NUM_RINGS; j++){
       level = 3 - i;
-      if(s->pegs[j]->size() >= level){
-        switch (s->pegs[j]->peek(i)){
+      if(s.pegs[j]->size() >= level){
+        switch (s.pegs[j]->peek(i)){
           case 'S':
             cout << S_STRING;
             continue;
@@ -156,36 +161,22 @@ static void printState(State* s){
   cout << endl;
 }
 
-static void rawPrint(State* s){
-  for(int i = 0; i < NUM_PEGS; i++){
-    for(int j = 0; j < NUM_RINGS; j++){
-      if(s->pegs[j]->size() > 0){
-        //cout <<(int) s->pegs[j][i];
-      } else {
-        cout << "-";
-      }
-    }
-    cout << "\n";
-  }
-  cout << "\n";
-}
-
-
 /**
 pre-condition: it is assumed this is only called on a legal state
   **/
 static void generateStates(State* current, vector<State*> frontier, int pegPos){
   State* dummy;
-  char c = 'S'; 
+  char c = current->pegs[pegPos]->peek(0);
   for(int i = 0; i < NUM_PEGS; i++){
+    dummy = new State(current);
     if(i != pegPos){
-      if(current->pegs[i]->size() == 0){
-        
+      if(dummy->pegs[i]->size() == 0){
+        //if empty, move disk and add to frontier immediately
+        dummy->moveDisk(pegPos, i);
+        frontier.push_back(dummy);
+        printState(dummy);
       } else {
-
-      }
-      if(current->isLegalMove(i, c)){
-
+        cout << "NOT EMPTY" << endl;
       }
     }
   }
@@ -205,10 +196,10 @@ int main() {
   eval = 0;
   cout << "main is starting" << endl;
   vector<State*> frontier;
-  State start = new State();
-  printState(&start);
-  //rawPrint(&start);
-  //generateFrontier(&start, frontier);
+
+  State start;
+  printState(start);
+  generateFrontier(&start, frontier);
   for(int i = 0; i < frontier.size(); i++){
     
   }
