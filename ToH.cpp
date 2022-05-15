@@ -35,9 +35,9 @@ float convertChar(char c){
 class State{
   public:
     State(){
-      pegs.push_back(vector<char> (3, 0));
-      pegs.push_back(vector<char> (3, 0));
-      pegs.push_back(vector<char> (3, 0));
+      pegs.push_back(vector<char> ());
+      pegs.push_back(vector<char> ());
+      pegs.push_back(vector<char> ());
       pegs[0].push_back('S');
       pegs[0].push_back('M');
       pegs[0].push_back('L');
@@ -64,6 +64,7 @@ class State{
 
     float h(){
       float val = 0;
+      //rings on last peg determine h
       for(int i = 0; i < pegs[NUM_PEGS - 1].size(); i++){
         val += convertChar(pegs[NUM_PEGS - 1][i]);
       }
@@ -80,16 +81,15 @@ class State{
 
 static void printState(State* s){
   int level = 3;
-  char c = ' ';
   string empty = "  |    ";
   for(int i = 0; i < NUM_PEGS; i++){
     for(int j = 0; j < NUM_RINGS; j++){
       level = 3 - i;
-      c = s->pegs[i][j];
-      if(s->pegs[i].size() >= level){
-        switch (s->pegs[i][j]){
+      if(s->pegs[j].size() >= level){
+        switch (s->pegs[j][i]){
           case 'S':
             cout << S_STRING;
+            continue;
             break;
           case 'M':
             cout << M_STRING;
@@ -104,17 +104,48 @@ static void printState(State* s){
         cout << empty;
       }
     }
+    cout << endl;
+  }
+}
+
+/**
+pre-condition: it is assumed this is only called on a legal state
+  **/
+static void generateStates(State* current, vector<State*> frontier, int pegPos){
+  printState(current);
+  State dummy;
+  char c = 'S';
+  for(int i = 0; i < NUM_PEGS; i++){
+    if(i != pegPos){
+      c = current->pegs[i][0];
+      if(current->isLegalMove(i, c)){
+        dummy = new State(current);
+        dummy.moveDisk(pegPos, i, c);
+        frontier.push_back(&dummy);
+        printState(&dummy);
+      }
+    }
+  }
+}
+
+static void generateFrontier(State* current, vector<State*> frontier){
+  //first find pegs with disks
+  for(int i = 0; i < NUM_PEGS; i++){
+    if(current->pegs[i].size() > 0){
+      generateStates(current, frontier, i);
+    }
   }
 }
 
 int main() {
   float eval;
   eval = 0;
-  //initialize pegs to SML[empty][empty]
-  //pegs[0] = TOTAL_WEIGHT;
 
-  vector<State> frontier;
+  vector<State*> frontier;
   State start = new State();
   printState(&start);
+  //generateFrontier(&start, frontier);
+  for(int i = 0; i < frontier.size(); i++){
+  }
   return 0;
 }
