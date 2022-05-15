@@ -9,14 +9,13 @@ using namespace std;
 
 #define NUM_RINGS  3
 #define NUM_PEGS  3
-#define L_WEIGHT  2.5
+#define L_WEIGHT  1.5
 #define M_WEIGHT  1
 #define S_WEIGHT  .5
 
 string S_STRING = "  S    ";
 string M_STRING = " MMM   ";
 string L_STRING = "LLLLL  ";
-//#define TOTAL_WEIGHT 4
 
 float convertChar(char c){
   switch(c){
@@ -31,31 +30,80 @@ float convertChar(char c){
   }
 }
 
+
+
 //helper class to store each state of the puzzle
 class State{
+  //inner class with custom stack functionality
+  class MyStack{
+    public:
+      MyStack(){
+        
+      }
+  
+      char peek(int index){
+        if(top >= 0){
+          return stack[top - index];
+        } else {
+          return ' ';
+        }
+      }
+  
+      void push(char c){
+        stack.push_back(c);
+        top++;
+      }
+  
+      char pop(){
+        char c = stack[top];
+        top--;
+        return c;
+      }
+  
+      int size(){
+        return top + 1;
+      }
+  
+      float getVal(){
+        float val = 0;
+        for(int i = 0; i < top + 1; i++){
+          val += convertChar(stack[i]);
+        }
+        return val;
+      }
+  
+      int top = -1;
+      vector<char> stack;
+  };
+
   public:
     State(){
-      pegs.push_back(vector<char> ());
-      pegs.push_back(vector<char> ());
-      pegs.push_back(vector<char> ());
-      pegs[0].push_back('S');
-      pegs[0].push_back('M');
-      pegs[0].push_back('L');
+      for(int i = 0; i < NUM_PEGS; i++){
+        pegs.push_back(new MyStack());
+      }
+      pegs[0]->push('L');
+      pegs[0]->push('M');
+      pegs[0]->push('S');
     }
-
+    
     State(State* origin){
-      pegs = origin->pegs;
+     
       g = origin->g;
+
     }
 
     bool isLegalMove(int dest, char disk){
-      return (convertChar(disk) < convertChar(pegs[dest].front()));
+      if(pegs[dest]->size() > 0){
+        return (convertChar(disk) < convertChar('c');
+      } else {
+        return true;
+      }
     }
 
-    bool moveDisk(int origin, int dest, char disk){
+    bool moveDisk(int origin, int dest){
+      char disk = 'c';
       if(isLegalMove(dest, disk)){
-        pegs[origin].erase(pegs[origin].begin());
-        pegs[dest].emplace(pegs[dest].begin(), disk);
+
         g++;
         return true;
       }
@@ -63,11 +111,8 @@ class State{
     }
 
     float h(){
-      float val = 0;
       //rings on last peg determine h
-      for(int i = 0; i < pegs[NUM_PEGS - 1].size(); i++){
-        val += convertChar(pegs[NUM_PEGS - 1][i]);
-      }
+      float val = pegs[NUM_PEGS - 1]->getVal();
       return 3 - val;
     }
         
@@ -76,7 +121,7 @@ class State{
     }
 
     int g = 0;
-    vector< vector<char> > pegs;
+    vector< MyStack* > pegs;
 };
 
 static void printState(State* s){
@@ -85,17 +130,19 @@ static void printState(State* s){
   for(int i = 0; i < NUM_PEGS; i++){
     for(int j = 0; j < NUM_RINGS; j++){
       level = 3 - i;
-      if(s->pegs[j].size() >= level){
-        switch (s->pegs[j][i]){
+      if(s->pegs[j]->size() >= level){
+        switch (s->pegs[j]->peek(i)){
           case 'S':
             cout << S_STRING;
             continue;
             break;
           case 'M':
             cout << M_STRING;
+            continue;
             break;
           case 'L':
             cout << L_STRING;
+            continue;
             break;
           default: 
             break;
@@ -106,23 +153,39 @@ static void printState(State* s){
     }
     cout << endl;
   }
+  cout << endl;
 }
+
+static void rawPrint(State* s){
+  for(int i = 0; i < NUM_PEGS; i++){
+    for(int j = 0; j < NUM_RINGS; j++){
+      if(s->pegs[j]->size() > 0){
+        //cout <<(int) s->pegs[j][i];
+      } else {
+        cout << "-";
+      }
+    }
+    cout << "\n";
+  }
+  cout << "\n";
+}
+
 
 /**
 pre-condition: it is assumed this is only called on a legal state
   **/
 static void generateStates(State* current, vector<State*> frontier, int pegPos){
-  printState(current);
-  State dummy;
-  char c = 'S';
+  State* dummy;
+  char c = 'S'; 
   for(int i = 0; i < NUM_PEGS; i++){
     if(i != pegPos){
-      c = current->pegs[i][0];
+      if(current->pegs[i]->size() == 0){
+        
+      } else {
+
+      }
       if(current->isLegalMove(i, c)){
-        dummy = new State(current);
-        dummy.moveDisk(pegPos, i, c);
-        frontier.push_back(&dummy);
-        printState(&dummy);
+
       }
     }
   }
@@ -131,7 +194,7 @@ static void generateStates(State* current, vector<State*> frontier, int pegPos){
 static void generateFrontier(State* current, vector<State*> frontier){
   //first find pegs with disks
   for(int i = 0; i < NUM_PEGS; i++){
-    if(current->pegs[i].size() > 0){
+    if(current->pegs[i]->size() > 0){
       generateStates(current, frontier, i);
     }
   }
@@ -140,12 +203,14 @@ static void generateFrontier(State* current, vector<State*> frontier){
 int main() {
   float eval;
   eval = 0;
-
+  cout << "main is starting" << endl;
   vector<State*> frontier;
   State start = new State();
   printState(&start);
+  //rawPrint(&start);
   //generateFrontier(&start, frontier);
   for(int i = 0; i < frontier.size(); i++){
+    
   }
   return 0;
 }
