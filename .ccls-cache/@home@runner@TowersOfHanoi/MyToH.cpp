@@ -41,8 +41,9 @@ class State{
       MyStack(){
 
       }
-  
+
       char peek(int index){
+        if(index < 0){ index = 0; }
         if(top >= 0){
           return stack[top - index];
         } else {
@@ -57,6 +58,8 @@ class State{
   
       char pop(){
         char c = stack[top];
+        //stack[top] = ' ';
+        stack.pop_back();
         top--;
         return c;
       }
@@ -73,10 +76,6 @@ class State{
         return val;
       }
 
-      int dumb(){
-        return 23;
-      }
-
       int top = -1;
       vector<char> stack;
   };
@@ -84,11 +83,11 @@ class State{
     State(){
       for(int i = 0; i < NUM_PEGS; i++){
         State::MyStack* holder = new MyStack();
-        pegs.push_back(holder);
+        pegs.push_back(*holder);
       }
-      pegs[0]->push('L');
-      pegs[0]->push('M');
-      pegs[0]->push('S');
+      pegs[0].push('L');
+      pegs[0].push('M');
+      pegs[0].push('S');
     }
     
     State(State* origin){
@@ -96,8 +95,8 @@ class State{
       g = origin->g;
     }
     bool isLegalMove(int dest, char disk){
-      if(pegs[dest]->size() > 0){
-        return (convertChar(disk) < convertChar(pegs[dest]->peek(0)));
+      if(pegs[dest].size() > 0){
+        return (convertChar(disk) < convertChar(pegs[dest].peek(0)));
       } else {
         return true;
       }
@@ -106,9 +105,9 @@ class State{
     bool moveDisk(int origin, int dest){
       char disk = 'c';
       if(isLegalMove(dest, disk)){
-        disk = pegs[origin]->peek(0);
-        pegs[dest]->push(disk);
-        pegs[origin]->pop();
+        disk = pegs[origin].peek(0);
+        pegs[dest].push(disk);
+        pegs[origin].pop();
         g++;
         return true;
       }
@@ -117,7 +116,7 @@ class State{
 
     float h(){
       //rings on last peg determine h
-      float val = pegs[NUM_PEGS - 1]->getVal();
+      float val = pegs[NUM_PEGS - 1].getVal();
       return 3 - val;
     }
         
@@ -126,17 +125,18 @@ class State{
     }
 
     int g = 0;
-    vector< State::MyStack* > pegs;
+    vector< State::MyStack > pegs;
 };
 
 static void printState(State s){
-  int level = 3;
+  int level = NUM_RINGS;
+  int currentSize = -1;
   string empty = "  |    ";
   for(int i = 0; i < NUM_PEGS; i++){
     for(int j = 0; j < NUM_RINGS; j++){
-      level = 3 - i;
-      if(s.pegs[j]->size() >= level){
-        switch (s.pegs[j]->peek(i)){
+      level = NUM_RINGS - i;
+      if(s.pegs[j].size() >= level){
+        switch (s.pegs[j].peek(s.pegs[j].size() - level)){
           case 'S':
             cout << S_STRING;
             continue;
@@ -150,11 +150,13 @@ static void printState(State s){
             continue;
             break;
           default: 
+            cout << empty;
             break;
         }
       } else {
         cout << empty;
       }
+
     }
     cout << endl;
   }
@@ -164,16 +166,16 @@ static void printState(State s){
 /**
 pre-condition: it is assumed this is only called on a legal state
   **/
-static void generateStates(State* current, vector<State*> frontier, int pegPos){
+static void generateStates(State* current, vector<State*>* frontier, int pegPos){
   State* dummy;
-  char c = current->pegs[pegPos]->peek(0);
+  char c = current->pegs[pegPos].peek(0);
   for(int i = 0; i < NUM_PEGS; i++){
     dummy = new State(current);
     if(i != pegPos){
-      if(dummy->pegs[i]->size() == 0){
+      if(dummy->pegs[i].size() == 0){
         //if empty, move disk and add to frontier immediately
         dummy->moveDisk(pegPos, i);
-        frontier.push_back(dummy);
+        frontier->push_back(dummy);
         printState(dummy);
       } else {
         cout << "NOT EMPTY" << endl;
@@ -182,10 +184,10 @@ static void generateStates(State* current, vector<State*> frontier, int pegPos){
   }
 }
 
-static void generateFrontier(State* current, vector<State*> frontier){
+static void generateFrontier(State* current, vector<State*>* frontier){
   //first find pegs with disks
   for(int i = 0; i < NUM_PEGS; i++){
-    if(current->pegs[i]->size() > 0){
+    if(current->pegs[i].size() > 0){
       generateStates(current, frontier, i);
     }
   }
@@ -193,15 +195,19 @@ static void generateFrontier(State* current, vector<State*> frontier){
 
 int main() {
   float eval;
+  bool isSolved = false;
   eval = 0;
   cout << "main is starting" << endl;
   vector<State*> frontier;
 
   State start;
   printState(start);
-  generateFrontier(&start, frontier);
-  for(int i = 0; i < frontier.size(); i++){
-    
-  }
+  generateFrontier(&start, &frontier);
+  //while(!isSolved){
+    for(int i = 0; i < frontier.size(); i++){
+      eval = frontier[i]->f();
+      cout << eval << endl;
+    }
+  //}
   return 0;
 }
