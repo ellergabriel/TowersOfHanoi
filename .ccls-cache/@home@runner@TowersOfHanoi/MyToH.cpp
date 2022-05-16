@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <stack>
+#include <unordered_map>
+#include <string>
 using namespace std;
 
 //========
@@ -16,6 +18,9 @@ using namespace std;
 string S_STRING = "  S    ";
 string M_STRING = " MMM   ";
 string L_STRING = "LLLLL  ";
+
+unordered_map<string, bool> states;
+
 
 float convertChar(char c){
   switch(c){
@@ -76,6 +81,14 @@ class State{
         return val;
       }
 
+      string generate(){
+        string rep = "";
+        for(int i = stack.size() - 1; i >= 0; i--){
+          rep += stack[i];
+        } 
+        return (rep == "" ?  "[empty] " : rep + " ");
+      }
+
       int top = -1;
       vector<char> stack;
   };
@@ -124,6 +137,15 @@ class State{
       return h() + g;
     }
 
+    string generateString(){
+      string rep = "";
+      for(int i = 0; i < NUM_PEGS; i++){
+        rep += pegs[i].generate();
+      }
+      return rep;
+    }
+    
+
     int g = 0;
     vector< State::MyStack > pegs;
 };
@@ -171,21 +193,27 @@ static void generateStates(State* current, vector<State*>* frontier, int pegPos)
   char c = current->pegs[pegPos].peek(0);
   for(int i = 0; i < NUM_PEGS; i++){
     dummy = new State(current);
-    if(i != pegPos){
-      if(dummy->pegs[i].size() == 0){
+    if(i != pegPos && dummy->isLegalMove(i, c)){
+      //if(dummy->pegs[i].size() == 0){
         //if empty, move disk and add to frontier immediately
         dummy->moveDisk(pegPos, i);
-        frontier->push_back(dummy);
-        printState(dummy);
-      } else {
-        cout << "NOT EMPTY" << endl;
+        if(!states[dummy->generateString()]){
+          frontier->push_back(dummy);
+          printState(dummy);
+          //cout << dummy->generateString() << "\n" << endl;
+          states.emplace(dummy->generateString(), true);
+        //}
+      //} else {
+       // cout << "NOT EMPTY" << endl;
+     // }
       }
     }
+  }  
   }
-}
 
 static void generateFrontier(State* current, vector<State*>* frontier){
   //first find pegs with disks
+  int debugger = 0;
   for(int i = 0; i < NUM_PEGS; i++){
     if(current->pegs[i].size() > 0){
       generateStates(current, frontier, i);
@@ -196,18 +224,23 @@ static void generateFrontier(State* current, vector<State*>* frontier){
 int main() {
   float eval;
   bool isSolved = false;
-  eval = 0;
+  eval = 100;
   cout << "main is starting" << endl;
   vector<State*> frontier;
-
   State start;
+  states.emplace(start.generateString(), true);
   printState(start);
   generateFrontier(&start, &frontier);
-  //while(!isSolved){
+  while(!isSolved){
+    State* dummy = &start;
     for(int i = 0; i < frontier.size(); i++){
-      eval = frontier[i]->f();
-      cout << eval << endl;
+      if(eval > frontier[i]->f()){
+        dummy = frontier[i];
+        eval = dummy->f();
+      }
+      //cout << eval << endl;
     }
-  //}
+    //generateFrontier(dummy, &frontier);
+  }
   return 0;
 }
