@@ -148,6 +148,7 @@ class State{
 
     int g = 0;
     vector< State::MyStack > pegs;
+    bool isVisited = false;
 };
 
 static void printState(State s){
@@ -208,14 +209,15 @@ static void generateStates(State* current, vector<State*>* frontier, int pegPos)
      // }
       }
     }
-  }  
   }
+  current->isVisited = true;
+}
 
 static void generateFrontier(State* current, vector<State*>* frontier){
-  //first find pegs with disks
+  //first find pegs with disks that have not been generated 
   int debugger = 0;
   for(int i = 0; i < NUM_PEGS; i++){
-    if(current->pegs[i].size() > 0){
+    if(current->pegs[i].size() > 0 && !current->isVisited){
       generateStates(current, frontier, i);
     }
   }
@@ -232,7 +234,7 @@ int main() {
   printState(start);
   generateFrontier(&start, &frontier);
   while(!isSolved){
-    State* dummy = &start;
+    State* dummy;
     for(int i = 0; i < frontier.size(); i++){
       if(eval > frontier[i]->f()){
         dummy = frontier[i];
@@ -240,7 +242,7 @@ int main() {
       }
       //cout << eval << endl;
     }
-    //generateFrontier(dummy, &frontier);
+    generateFrontier(dummy, &frontier);
   }
   return 0;
 }
