@@ -11,9 +11,9 @@ using namespace std;
 
 #define NUM_RINGS  3
 #define NUM_PEGS  3
-#define L_WEIGHT  1.8
-#define M_WEIGHT  .9
-#define S_WEIGHT  .3
+#define L_WEIGHT  1.5
+#define M_WEIGHT  .8
+#define S_WEIGHT  .7
 
 string S_STRING = "  S    ";
 string M_STRING = " MMM   ";
@@ -141,13 +141,13 @@ class State{
             //end condition; two rings that are not small must mean 
             //S [empty] ML state has been reached
             //-1 indicates that f() for this state should be 0, taken immediately
-            if (pegs[i].size() > 1 && pegs[i].peek(0) != 'S'){
-              return -1;
-            }
+            //if (pegs[i].size() > 1 && pegs[i].peek(0) != 'S'){
+              //return 0;
+            //}
             val += inter * pegs[i].size(); 
             continue;
           }
-          val += inter / pegs[i].size();
+          val += inter / (pegs[i].size() + 1);
           inter = 0;
         }
       }
@@ -254,7 +254,7 @@ static bool generateStates(State* current, vector<State*>* frontier, int pegPos)
 
 static bool generateFrontier(State* current, vector<State*>* frontier){
   //first find pegs with disks that have not been generated 
-  int debugger = 0;
+  int size = frontier->size();
   cout << "\n\t\texpanding on state:" << endl;
   printState(current);
   cout << "attempting to creating frontier state: " << endl;
@@ -266,6 +266,9 @@ static bool generateFrontier(State* current, vector<State*>* frontier){
     }
   }
   current->isVisited = true;
+  if(size == frontier->size()){ //no new states added
+    cout << "no new states created" << endl;
+  }
   return false;
 }
 
@@ -278,11 +281,11 @@ static void printRecord(list<State*>* record){
 //returns index of frontier node to expand upon next
 static int selectNode(vector<State*>* frontier){
   int index = 0;
-  float eval = 4;
+  float eval = frontier->at(0)->f();
   for(int i = 0; i < frontier->size(); i++){
     if (!frontier->at(i)->isVisited && 
           states.count(frontier->at(i)->generateString()) != 0 &&
-          frontier->at(i)->f() < eval) {
+          frontier->at(i)->f() <= eval) {
       index = i; 
       eval = frontier->at(i)->f();
     }
