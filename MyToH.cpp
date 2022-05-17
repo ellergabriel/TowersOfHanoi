@@ -130,6 +130,9 @@ class State{
     float h(){
       //rings on last peg determine h
       float val = pegs[NUM_PEGS - 1].getVal();
+     // if(pegs[NUM_PEGS - 1].peek(0) == 'L' && pegs[NUM_PEGS - 1].size() == 1){ //win condition can be met if L is on bottom of third peg
+        //return 0;
+      //}
       return (3 - val);
     }
         
@@ -142,13 +145,16 @@ class State{
       for(int i = 0; i < NUM_PEGS; i++){
         rep += pegs[i].generate();
       }
-      cout << rep << endl;
+      //cout << rep << endl;
       this->rep = rep;
       return rep;
     }
     
+    bool isFinished(){
+      return pegs[NUM_PEGS - 1].size() == NUM_RINGS;
+    }
 
-    int g = 0;
+    int g = 1;
     vector< State::MyStack > pegs;
     bool isVisited = false;
     string rep;
@@ -192,7 +198,7 @@ static void printState(State s){
 /**
 pre-condition: it is assumed this is only called on a legal state
   **/
-static void generateStates(State* current, vector<State*>* frontier, int pegPos){
+static bool generateStates(State* current, vector<State*>* frontier, int pegPos){
   State* dummy;
   char c = current->pegs[pegPos].peek(0);
   for(int i = 0; i < NUM_PEGS; i++){
@@ -204,6 +210,9 @@ static void generateStates(State* current, vector<State*>* frontier, int pegPos)
         if(!states.count(dummy->generateString())){
           frontier->push_back(dummy);
           printState(dummy);
+          if(dummy->isFinished()){
+            return true;
+          }
           //cout << dummy->generateString() << "\n" << endl;
           states.emplace(dummy->generateString(), true);
         //}
@@ -213,42 +222,52 @@ static void generateStates(State* current, vector<State*>* frontier, int pegPos)
       }
     }
   }
+  return false;
 }
 
-static void generateFrontier(State* current, vector<State*>* frontier){
+static bool generateFrontier(State* current, vector<State*>* frontier){
   //first find pegs with disks that have not been generated 
   int debugger = 0;
   for(int i = 0; i < NUM_PEGS; i++){
     if(current->pegs[i].size() > 0 && !current->isVisited){
-      generateStates(current, frontier, i);
+      if(generateStates(current, frontier, i)){
+        return true;
+      }
     }
   }
-  current->isVisited = false;
+  current->isVisited = true;
+  return false;
 }
+
 
 int main() {
   float eval;
   bool isSolved = false;
   eval = 100;
-  cout << "main is starting" << endl;
+  //cout << "main is starting" << endl;
   vector<State*> frontier;
   State start;
   states.emplace(start.generateString(), true);
-  printState(start);
+  printState(start);  
   generateFrontier(&start, &frontier);
   State* dummy = &start;
   State* prev;
   while(!isSolved){
     for(int i = 0; i < frontier.size(); i++){
-      if( (!frontier[i]->isVisited || !states.count(frontier[i]->generateString()) ) 
-          && frontier[i] != prev){ 
-        dummy = frontier[i];
-        eval = dummy->f();
+      if (  (!frontier[i]->isVisited &&  frontier[i] != prev)  && 
+            states.count(frontier[i]->generateString()) != 0) { 
+        if(frontier[i]->h() < eval){
+          dummy = frontier[i];
+          eval = dummy->f();
+        }
       }
-      //cout << eval << endl;
+      if(generateFrontier(dummy, &frontier)){
+        isSolved = true; 
+        cout << "Solved in " << dummy->g << " moves\n";
+        break;
+      }
+      prev = dummy;
     }
-    generateFrontier(dummy, &frontier);
-    prev = dummy;
   }
   return 0;
 }
