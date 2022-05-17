@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
-#include <stack>
 #include <unordered_map>
 #include <string>
+#include <list>
 using namespace std;
 
 //========
@@ -11,8 +11,8 @@ using namespace std;
 
 #define NUM_RINGS  3
 #define NUM_PEGS  3
-#define L_WEIGHT  1.5
-#define M_WEIGHT  1
+#define L_WEIGHT  1.75
+#define M_WEIGHT  .75
 #define S_WEIGHT  .5
 
 string S_STRING = "  S    ";
@@ -101,6 +101,7 @@ class State{
       pegs[0].push('L');
       pegs[0].push('M');
       pegs[0].push('S');
+      record.push_back(this);
     }
     
     State(State* origin){
@@ -128,15 +129,33 @@ class State{
     }
 
     float h(){
-      //rings on last peg determine h
-      float val = pegs[NUM_PEGS - 1].getVal();
-     // if(pegs[NUM_PEGS - 1].peek(0) == 'L' && pegs[NUM_PEGS - 1].size() == 1){ //win condition can be met if L is on bottom of third peg
-        //return 0;
-      //}
-      return (3 - val);
+      //(sum of weights on peg) / (# of rings on peg)
+      float val = 0;
+      float inter = 0;
+      float mult = 1;
+      for(int i = 0; i < pegs.size(); i++){
+        if(pegs[i].size() != 0){
+          for(int j = 0; j < pegs[i].size(); j++){
+            inter += convertChar(pegs[i].peek(j));
+          }
+         //last peg gets more weight, moreso if L is in place 
+          if(i == NUM_PEGS - 1){
+            mult = (pegs[i].peek(0) == 'L') ? 5 : 1.2;
+            //end condition; two rings that are not small must mean 
+            //S [empty] ML state has been reached
+            mult = (pegs[i].size() > 1 && pegs[i].peek(0) != 'S')
+                    ? 20 : mult;
+          }
+          val += (inter * mult) / pegs[i].size();
+          inter = 0;
+        }
+      }
+      hDb = 3 - val;
+      return 3 - val;
     }
         
     float f(){
+      fDb = h() + g;
       return h() + g;
     }
 
@@ -154,10 +173,14 @@ class State{
       return pegs[NUM_PEGS - 1].size() == NUM_RINGS;
     }
 
-    int g = 1;
+    int g = 0;
     vector< State::MyStack > pegs;
     bool isVisited = false;
     string rep;
+    list<State*> record;
+    //debugger variables for easier viewing 
+    float hDb;
+    float fDb;
 };
 
 static void printState(State s){
@@ -190,6 +213,11 @@ static void printState(State s){
       }
 
     }
+    if(i == 0){
+      cout << "\tf = " << s.f();
+      cout << " g = " << s.g;
+      cout << " h = " << s.h();
+    }
     cout << endl;
   }
   cout << endl;
@@ -204,21 +232,19 @@ static bool generateStates(State* current, vector<State*>* frontier, int pegPos)
   for(int i = 0; i < NUM_PEGS; i++){
     dummy = new State(current);
     if(i != pegPos && dummy->isLegalMove(i, c)){
-      //if(dummy->pegs[i].size() == 0){
-        //if empty, move disk and add to frontier immediately
-        dummy->moveDisk(pegPos, i);
-        if(!states.count(dummy->generateString())){
-          frontier->push_back(dummy);
-          printState(dummy);
-          if(dummy->isFinished()){
-            return true;
-          }
-          //cout << dummy->generateString() << "\n" << endl;
-          states.emplace(dummy->generateString(), true);
-        //}
-      //} else {
-       // cout << "NOT EMPTY" << endl;
-     // }
+      
+      dummy->moveDisk(pegPos, i);
+      if(!states.count(dummy->generateString())){
+        dummy->record = current->record;
+        frontier->push_back(dummy);
+        printState(dummy);
+        dummy->record.push_back(dummy);
+        if(dummy->isFinished()){
+          current->record = dummy->record;
+          current->g += 1;
+          return true;
+        }
+        states.emplace(dummy->generateString(), true);
       }
     }
   }
@@ -228,6 +254,9 @@ static bool generateStates(State* current, vector<State*>* frontier, int pegPos)
 static bool generateFrontier(State* current, vector<State*>* frontier){
   //first find pegs with disks that have not been generated 
   int debugger = 0;
+  cout << "\n\t\texpanding on state:" << endl;
+  printState(current);
+  cout << "attempting to creating frontier state: " << endl;
   for(int i = 0; i < NUM_PEGS; i++){
     if(current->pegs[i].size() > 0 && !current->isVisited){
       if(generateStates(current, frontier, i)){
@@ -239,35 +268,50 @@ static bool generateFrontier(State* current, vector<State*>* frontier){
   return false;
 }
 
+static void printRecord(list<State*>* record){
+  for(list<State*>::iterator it = record->begin(); it != record->end(); it++){
+    printState(*it);
+  }
+}
 
 int main() {
   float eval;
+  int index = 0;
   bool isSolved = false;
-  eval = 100;
+  eval = 4;
   //cout << "main is starting" << endl;
   vector<State*> frontier;
   State start;
   states.emplace(start.generateString(), true);
+  cout << "\t\tstart state: \n";
   printState(start);  
   generateFrontier(&start, &frontier);
   State* dummy = &start;
   State* prev;
   while(!isSolved){
     for(int i = 0; i < frontier.size(); i++){
-      if (  (!frontier[i]->isVisited &&  frontier[i] != prev)  && 
-            states.count(frontier[i]->generateString()) != 0) { 
-        if(frontier[i]->h() < eval){
-          dummy = frontier[i];
-          eval = dummy->f();
-        }
+      if (!frontier[i]->isVisited && 
+            states.count(frontier[i]->generateString()) != 0 &&
+            frontier[i]->f() < eval) {
+        index = i; 
+        eval = frontier[i]->f();
       }
-      if(generateFrontier(dummy, &frontier)){
-        isSolved = true; 
-        cout << "Solved in " << dummy->g << " moves\n";
-        break;
-      }
-      prev = dummy;
     }
-  }
+    dummy = frontier[index];
+    eval = dummy->f();
+    if(generateFrontier(dummy, &frontier)){
+      isSolved = true; 
+      //dummy->record.push_back(dummy);
+      cout << "Solved in " << dummy->g << " moves\n";
+      cout << "solution path: " << endl;
+      printRecord(&dummy->record);
+      break;
+    }
+    frontier.erase(frontier.begin() + index);
+    prev = dummy;
+    //reset evaluation and index for next iteration
+    eval = frontier[0]->f();
+    index = 0;
+    }
   return 0;
 }
