@@ -11,16 +11,15 @@ using namespace std;
 
 #define NUM_RINGS  3
 #define NUM_PEGS  3
-#define L_WEIGHT  1.75
-#define M_WEIGHT  .75
-#define S_WEIGHT  .5
+#define L_WEIGHT  1.8
+#define M_WEIGHT  .9
+#define S_WEIGHT  .3
 
 string S_STRING = "  S    ";
 string M_STRING = " MMM   ";
 string L_STRING = "LLLLL  ";
 
 unordered_map<string, bool> states;
-
 
 float convertChar(char c){
   switch(c){
@@ -132,7 +131,6 @@ class State{
       //(sum of weights on peg) / (# of rings on peg)
       float val = 0;
       float inter = 0;
-      float mult = 1;
       for(int i = 0; i < pegs.size(); i++){
         if(pegs[i].size() != 0){
           for(int j = 0; j < pegs[i].size(); j++){
@@ -140,23 +138,26 @@ class State{
           }
          //last peg gets more weight, moreso if L is in place 
           if(i == NUM_PEGS - 1){
-            mult = (pegs[i].peek(0) == 'L') ? 5 : 1.2;
             //end condition; two rings that are not small must mean 
             //S [empty] ML state has been reached
-            mult = (pegs[i].size() > 1 && pegs[i].peek(0) != 'S')
-                    ? 20 : mult;
+            //-1 indicates that f() for this state should be 0, taken immediately
+            if (pegs[i].size() > 1 && pegs[i].peek(0) != 'S'){
+              return -1;
+            }
+            val += inter * pegs[i].size(); 
+            continue;
           }
-          val += (inter * mult) / pegs[i].size();
+          val += inter / pegs[i].size();
           inter = 0;
         }
       }
-      hDb = 3 - val;
-      return 3 - val;
+      hDb = (val > 3) ? 0 : 3 - val;
+      return (val > 3) ? 0 : 3 - val;
     }
         
     float f(){
       fDb = h() + g;
-      return h() + g;
+      return (h() == -1) ? 0 : h() + g;
     }
 
     string generateString(){
@@ -274,6 +275,21 @@ static void printRecord(list<State*>* record){
   }
 }
 
+//returns index of frontier node to expand upon next
+static int selectNode(vector<State*>* frontier){
+  int index = 0;
+  float eval = 4;
+  for(int i = 0; i < frontier->size(); i++){
+    if (!frontier->at(i)->isVisited && 
+          states.count(frontier->at(i)->generateString()) != 0 &&
+          frontier->at(i)->f() < eval) {
+      index = i; 
+      eval = frontier->at(i)->f();
+    }
+  }
+  return index;
+}
+
 int main() {
   float eval;
   int index = 0;
@@ -289,14 +305,7 @@ int main() {
   State* dummy = &start;
   State* prev;
   while(!isSolved){
-    for(int i = 0; i < frontier.size(); i++){
-      if (!frontier[i]->isVisited && 
-            states.count(frontier[i]->generateString()) != 0 &&
-            frontier[i]->f() < eval) {
-        index = i; 
-        eval = frontier[i]->f();
-      }
-    }
+    index = selectNode(&frontier);
     dummy = frontier[index];
     eval = dummy->f();
     if(generateFrontier(dummy, &frontier)){
