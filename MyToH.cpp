@@ -138,25 +138,19 @@ class State{
           }
          //last peg gets more weight, moreso if L is in place 
           if(i == NUM_PEGS - 1){
-            //end condition; two rings that are not small must mean 
-            //S [empty] ML state has been reached
-            //-1 indicates that f() for this state should be 0, taken immediately
-            //if (pegs[i].size() > 1 && pegs[i].peek(0) != 'S'){
-              //return 0;
-            //}
             val += inter * pegs[i].size(); 
             continue;
           }
-          val += inter / (pegs[i].size() + 1);
+          val += inter / (pegs[i].size());
           inter = 0;
         }
       }
-      hDb = (val > 3) ? 0 : 3 - val;
+      //hDb = (val > 3) ? 0 : 3 - val;
       return (val > 3) ? 0 : 3 - val;
     }
         
     float f(){
-      fDb = h() + g;
+      //fDb = h() + g;
       return (h() == -1) ? 0 : h() + g;
     }
 
@@ -180,10 +174,11 @@ class State{
     string rep;
     list<State*> record;
     //debugger variables for easier viewing 
-    float hDb;
-    float fDb;
+    //float hDb;
+    //float fDb;
 };
 
+//Formatted print of each state
 static void printState(State s){
   int level = NUM_RINGS;
   int currentSize = -1;
@@ -235,6 +230,7 @@ static bool generateStates(State* current, vector<State*>* frontier, int pegPos)
     if(i != pegPos && dummy->isLegalMove(i, c)){
       
       dummy->moveDisk(pegPos, i);
+      //check map if state string has been generated 
       if(!states.count(dummy->generateString())){
         dummy->record = current->record;
         frontier->push_back(dummy);
@@ -272,6 +268,7 @@ static bool generateFrontier(State* current, vector<State*>* frontier){
   return false;
 }
 
+//helper function to print record of states reached before input state
 static void printRecord(list<State*>* record){
   for(list<State*>::iterator it = record->begin(); it != record->end(); it++){
     printState(*it);
