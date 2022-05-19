@@ -21,6 +21,7 @@ string L_STRING = "LLLLL  ";
 
 unordered_map<string, bool> states;
 
+//helper function for getting disk weights
 float convertChar(char c){
   switch(c){
     case 'S':
@@ -34,17 +35,15 @@ float convertChar(char c){
   }
 }
 
-
-
-//helper class to store each state of the puzzle
+//lass to store each state of the puzzle
 class State{
   public:
   //inner class with custom stack functionality
+  //designed to allow iterating through the stack while maintaining
+  //LIFO design 
   class MyStack{
     public:
-      MyStack(){
-
-      }
+      MyStack(){}
 
       char peek(int index){
         if(index < 0){ index = 0; }
@@ -62,7 +61,6 @@ class State{
   
       char pop(){
         char c = stack[top];
-        //stack[top] = ' ';
         stack.pop_back();
         top--;
         return c;
@@ -71,7 +69,7 @@ class State{
       int size(){
         return top + 1;
       }
-  
+      
       float getVal(){
         float val = 0;
         for(int i = 0; i < top + 1; i++){
@@ -80,6 +78,9 @@ class State{
         return val;
       }
 
+      //generates string representation of the stack
+      //concatenated in State class in order to get
+      //string representation of the entire State
       string generate(){
         string rep = "";
         for(int i = stack.size() - 1; i >= 0; i--){
@@ -90,7 +91,7 @@ class State{
 
       int top = -1;
       vector<char> stack;
-  };
+  }; //end MyStack inner class
 
     State(){
       for(int i = 0; i < NUM_PEGS; i++){
@@ -107,6 +108,7 @@ class State{
       pegs = origin->pegs;
       g = origin->g;
     }
+    
     bool isLegalMove(int dest, char disk){
       if(pegs[dest].size() > 0){
         return (convertChar(disk) < convertChar(pegs[dest].peek(0)));
@@ -116,9 +118,8 @@ class State{
     }
 
     bool moveDisk(int origin, int dest){
-      char disk = 'c';
+      char disk = pegs[origin].peek(0);
       if(isLegalMove(dest, disk)){
-        disk = pegs[origin].peek(0);
         pegs[dest].push(disk);
         pegs[origin].pop();
         g++;
@@ -236,6 +237,7 @@ static bool generateStates(State* current, vector<State*>* frontier, int pegPos)
         frontier->push_back(dummy);
         printState(dummy);
         dummy->record.push_back(dummy);
+        //terminate early if win state has been found
         if(dummy->isFinished()){
           current->record = dummy->record;
           current->g += 1;
@@ -295,7 +297,6 @@ int main() {
   int index = 0;
   bool isSolved = false;
   eval = 4;
-  //cout << "main is starting" << endl;
   vector<State*> frontier;
   State start;
   states.emplace(start.generateString(), true);
@@ -307,10 +308,8 @@ int main() {
   while(!isSolved){
     index = selectNode(&frontier);
     dummy = frontier[index];
-    eval = dummy->f();
     if(generateFrontier(dummy, &frontier)){
       isSolved = true; 
-      //dummy->record.push_back(dummy);
       cout << "Solved in " << dummy->g << " moves\n";
       cout << "solution path: " << endl;
       printRecord(&dummy->record);
@@ -318,8 +317,7 @@ int main() {
     }
     frontier.erase(frontier.begin() + index);
     prev = dummy;
-    //reset evaluation and index for next iteration
-    eval = frontier[0]->f();
+    //reset index for next iteration
     index = 0;
     }
   return 0;
